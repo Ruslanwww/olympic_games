@@ -22,7 +22,7 @@ CSV.foreach(csv_path, headers: true, header_converters: :symbol) do |row|
   team_hash[team_noc] = { name: team_name, id: team_hash.size + 1 } if team_hash[team_noc].nil?
 
   #ATHLETE PARSE
-  athlete_name = row[:name].gsub(/\(.+\)|".+"/, '').gsub('"', "'")
+  athlete_name = row[:name].gsub(/\(.+\)|".+"/, '')
   row[:age] == "NA" ? athlete_birth = "null" : athlete_birth = Time.now.utc.year - row[:age].to_i
   if row[:sex] == "NA"
     athlete_sex = "null"
@@ -86,54 +86,29 @@ CSV.foreach(csv_path, headers: true, header_converters: :symbol) do |row|
 end
 game_arr = []
 game_hash.each { |key, value| game_arr.push [value[:id], key[0], key[1], value[:city].join(',')] }
-# game_hash.each { |key, value| game_arr.push "( #{value[:id]} ,#{key[0]}, #{key[1]}, \"#{value[:city].join(',')}\")" }
 
 team_arr = []
 team_hash.each { |key, value| team_arr.push [value[:id], value[:name], key] }
-# team_hash.each { |key, value| team_arr.push "(#{value[:id]}, \"#{value[:name]}\", \"#{key}\")" }
 
 athlete_arr = []
 athlete_hash.each { |key, value| athlete_arr.push [key, value[:name], value[:birth], value[:sex], 
-                                                   value[:params], value[:t_id]] }
-# athlete_hash.each { |key, value| athlete_arr.push "(#{key}, \"#{value[:name]}\", #{value[:birth]}, #{value[:sex]}, 
-#                                                     \"#{value[:params]}\", #{value[:t_id]})" }
+                                                   value[:params], value[:t_id]] 
+                  }
 
 sport_arr = []
 sport_hash.each { |key, value| sport_arr.push [value[:id], key] }
-# sport_hash.each { |key, value| sport_arr.push "(#{value[:id]}, \"#{key}\")" }
 
 event_arr = []
 event_hash.each { |key, value| event_arr.push [value[:id], key] }
-# event_hash.each { |key, value| event_arr.push "(#{value[:id]}, \"#{key}\")" }
 
 results_arr = []
 result_hash_arr.each { |hash_v| results_arr.push [hash_v[:a_id], hash_v[:g_id], hash_v[:s_id], 
                                                   hash_v[:e_id], hash_v[:medal]] 
                       }
-# result_hash_arr.each { |hash_v| results_arr.push "(#{hash_v[:a_id]}, 
-#                                                    #{hash_v[:g_id]}, 
-#                                                    #{hash_v[:s_id]}, 
-#                                                    #{hash_v[:e_id]}, 
-#                                                    #{hash_v[:medal]})" 
-#                       }
-
-# games_str = game_arr.join(',')
-# teams_str = team_arr.join(',')
-# athletes_str = athlete_arr.join(',')
-# sports_str = sport_arr.join(',')
-# events_str = event_arr.join(',')
-# results_str = results_arr.join(',')
-
-games_values = (["(?,?,?,?)"] * game_arr.size).join(',')
-teams_values = (["(?,?,?)"] * team_arr.size).join(',')
-athletes_values = (["(?,?,?,?,?,?)"] * athlete_arr.size).join(',')
-sports_values = (["(?,?)"] * sport_arr.size).join(',')
-events_values = (["(?,?)"] * event_arr.size).join(',')
-results_values = (["(?,?,?,?,?)"] * results_arr.size).join(',')
 
 begin
     db = SQLite3::Database.open "#{db_path}"
-    puts db.get_first_value 'SELECT SQLITE_VERSION()'
+
     db.execute "DELETE FROM games WHERE 1 = 1;"
     db.execute "DELETE FROM teams WHERE 1 = 1;"
     db.execute "DELETE FROM athletes WHERE 1 = 1;"
@@ -141,21 +116,31 @@ begin
     db.execute "DELETE FROM events WHERE 1 = 1;"
     db.execute "DELETE FROM results WHERE 1 = 1;"
 
-    db.execute "INSERT INTO games(id, year, season, city) VALUES #{games_values}", game_arr
+    game_arr.each_slice(10000) do |elem|
+      db.execute "INSERT INTO games(id, year, season, city) VALUES #{(["(?,?,?,?)"] * elem.size).join(',')}", elem
+    end
 
-    db.execute "INSERT INTO teams(id, name, noc_name) VALUES #{teams_values}", team_arr
+    team_arr.each_slice(10000) do |elem|
+      db.execute "INSERT INTO teams(id, name, noc_name) VALUES #{(["(?,?,?)"] * elem.size).join(',')}", elem
+    end
 
-    db.execute "INSERT INTO athletes(id, full_name, year_of_birth, sex, params, team_id) VALUES #{athletes_values}",
-                athlete_arr
+    athlete_arr.each_slice(10000) do |elem|
+      db.execute "INSERT INTO athletes(id, full_name, year_of_birth, sex, params, team_id) 
+                  VALUES #{(["(?,?,?,?,?,?)"] * elem.size).join(',')}", elem
+    end
 
-    db.execute "INSERT INTO sports(id, name) VALUES #{sports_values}", sport_arr
+    sport_arr.each_slice(10000) do |elem|
+      db.execute "INSERT INTO sports(id, name) VALUES #{(["(?,?)"] * elem.size).join(',')}", elem
+    end
 
-    db.execute "INSERT INTO events(id, name) VALUES #{events_values}", event_arr
+    event_arr.each_slice(10000) do |elem|
+      db.execute "INSERT INTO events(id, name) VALUES #{(["(?,?)"] * elem.size).join(',')}", elem
+    end
 
-    db.execute "INSERT INTO results(athlete_id, game_id, sport_id, event_id, medal) VALUES #{results_values}",
-                results_arr
-
-    # p db.execute 'SELECT * FROM games;'
+    results_arr.each_slice(10000) do |elem|
+    db.execute "INSERT INTO results(athlete_id, game_id, sport_id, event_id, medal) 
+                VALUES #{(["(?,?,?,?,?)"] * elem.size).join(',')}", elem
+    end
     
 rescue SQLite3::Exception => e 
     puts "Exception occurred"
