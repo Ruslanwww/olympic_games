@@ -56,10 +56,10 @@ class Parser
     def athlete_parse(data)
       athlete_name = data[:name].gsub(/\(.+\)|".+"/, '')
 
-      athlete_birth = data[:age] == "NA" ? "null" : Time.now.utc.year - data[:age].to_i
+      athlete_birth = data[:age] == "NA" ? nil : Time.now.utc.year - data[:age].to_i
 
       if data[:sex] == "NA"
-        athlete_sex = "null"
+        athlete_sex = nil
       else
         data[:sex] == "F" ? athlete_sex = 0 : athlete_sex = 1
       end

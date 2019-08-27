@@ -1,6 +1,6 @@
 require_relative "app/parser"
 require_relative "app/data_base_import"
-require_relative "app/data_base_connection"
+require_relative "app/factories/connection_factory"
 
 start_time = Time.now
 
@@ -10,10 +10,11 @@ db_path = "olympic_history.db"
 obj = Parser.new(csv_path)
 result = obj.parse_data
 
-db = DataBaseConnection.new.connect(db_path)
+db = ConnectionFactory.pg
+db.connect(db_path)
 
 DataBaseImport.new.import(result, db)
 
-db.close
+db.connection.close
 
 p Time.now - start_time

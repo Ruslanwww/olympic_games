@@ -9,8 +9,6 @@ class DataBaseImport
     @results_arr = []
   end
 
-  
-  
   def import(results, db)
     serialized_data(results)
     clear_db(db)
@@ -19,12 +17,12 @@ class DataBaseImport
 
   private
     def clear_db(db)
-      db.execute "DELETE FROM games WHERE 1 = 1;"
-      db.execute "DELETE FROM teams WHERE 1 = 1;"
-      db.execute "DELETE FROM athletes WHERE 1 = 1;"
-      db.execute "DELETE FROM sports WHERE 1 = 1;"
-      db.execute "DELETE FROM events WHERE 1 = 1;"
-      db.execute "DELETE FROM results WHERE 1 = 1;"
+      db.execute "DELETE FROM results;"
+      db.execute "DELETE FROM athletes;"
+      db.execute "DELETE FROM games;"
+      db.execute "DELETE FROM teams;"
+      db.execute "DELETE FROM sports;"
+      db.execute "DELETE FROM events;"
     end
 
     def serialized_data(results)
@@ -47,39 +45,45 @@ class DataBaseImport
 
     def insert_games(db)
       @game_arr.each_slice(10000) do |elem|
-        db.execute "INSERT INTO games(id, year, season, city) VALUES #{(["(?,?,?,?)"] * elem.size).join(',')}", elem
+        values = db.values(elem.size, elem.first.size)
+        db.execute "INSERT INTO games(id, year, season, city) VALUES #{values}", db.prepare_elements(elem)
       end
     end
 
     def insert_teams(db)
       @team_arr.each_slice(10000) do |elem|
-        db.execute "INSERT INTO teams(id, name, noc_name) VALUES #{(["(?,?,?)"] * elem.size).join(',')}", elem
+        values = db.values(elem.size, elem.first.size)
+        db.execute "INSERT INTO teams(id, name, noc_name) VALUES #{values}", db.prepare_elements(elem)
       end
     end
 
     def insert_athletes(db)
       @athlete_arr.each_slice(10000) do |elem|
+        values = db.values(elem.size, elem.first.size)
         db.execute "INSERT INTO athletes(id, full_name, year_of_birth, sex, params, team_id) 
-                    VALUES #{(["(?,?,?,?,?,?)"] * elem.size).join(',')}", elem
+                    VALUES #{values}", db.prepare_elements(elem)
       end
     end
 
     def insert_sports(db)
       @sport_arr.each_slice(10000) do |elem|
-        db.execute "INSERT INTO sports(id, name) VALUES #{(["(?,?)"] * elem.size).join(',')}", elem
+        values = db.values(elem.size, elem.first.size)
+        db.execute "INSERT INTO sports(id, name) VALUES #{values}", db.prepare_elements(elem)
       end
     end
 
     def insert_events(db)
       @event_arr.each_slice(10000) do |elem|
-        db.execute "INSERT INTO events(id, name) VALUES #{(["(?,?)"] * elem.size).join(',')}", elem
+        values = db.values(elem.size, elem.first.size)
+        db.execute "INSERT INTO events(id, name) VALUES #{values}", db.prepare_elements(elem)
       end
     end
 
     def insert_results(db)
       @results_arr.each_slice(10000) do |elem|
-      db.execute "INSERT INTO results(athlete_id, game_id, sport_id, event_id, medal) 
-                  VALUES #{(["(?,?,?,?,?)"] * elem.size).join(',')}", elem
+        values = db.values(elem.size, elem.first.size)
+        db.execute "INSERT INTO results(athlete_id, game_id, sport_id, event_id, medal) 
+                    VALUES #{values}", db.prepare_elements(elem)
       end
     end
 
