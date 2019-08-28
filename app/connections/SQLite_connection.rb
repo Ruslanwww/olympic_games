@@ -25,4 +25,12 @@ class SQLiteConnection < Connection
   def get_data(data)
     data
   end
+
+  def get_param(number = 1)
+    "?"
+  end
+
+  def close
+    connection.close
+  end
 end

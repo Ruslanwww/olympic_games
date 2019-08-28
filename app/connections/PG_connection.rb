@@ -27,4 +27,12 @@ class PGConnection < Connection
   def get_data(data)
     data.values
   end
+
+  def get_param(number = 1)
+    "$#{number}"
+  end
+
+  def close
+    connection.close
+  end
 end

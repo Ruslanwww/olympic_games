@@ -54,14 +54,17 @@ class Parser
     end
 
     def athlete_parse(data)
-      athlete_name = data[:name].gsub(/\(.+\)|".+"/, '')
+      athlete_name = data[:name].gsub(/\(.+\)|".+"/, '').gsub(/[ ]{2,}/, ' ').strip
 
       athlete_birth = data[:age] == "NA" ? nil : Time.now.utc.year - data[:age].to_i
 
-      if data[:sex] == "NA"
-        athlete_sex = nil
-      else
-        data[:sex] == "F" ? athlete_sex = 0 : athlete_sex = 1
+      case data[:sex]
+        when "NA"   
+          athlete_sex = nil
+        when "F"
+          athlete_sex = 0
+        else
+          athlete_sex = 1
       end
 
       athlete_params = []
@@ -109,7 +112,7 @@ class Parser
           medal = 1
         else
           medal = 0
-        end
+      end
 
         result_hash_arr << { 
                               a_id: data[:id],

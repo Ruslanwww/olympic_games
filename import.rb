@@ -10,11 +10,11 @@ db_path = "olympic_history.db"
 obj = Parser.new(csv_path)
 result = obj.parse_data
 
-db = ConnectionFactory.pg
+db = ConnectionFactory.sqlite
 db.connect(db_path)
 
 DataBaseImport.new.import(result, db)
 
-db.connection.close
+db.close
 
 p Time.now - start_time

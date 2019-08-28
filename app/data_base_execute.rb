@@ -1,20 +1,18 @@
 class DataBaseExecute
+  SEASONS_LIST = { summer: 0, winter: 1 }.freeze
+  MEDALS_LIST = { bronze: 1, silver: 2, gold: 3 }.freeze
 
   def initialize(chart_size)
-    @@seasons_list = { summer: 0, winter: 1 }
-    @@medals_list = { bronze: 1, silver: 2, gold: 3 }
-    @medals = "1, 2, 3"
-    @season = nil
-    @noc_year = nil
     @chart_size = chart_size
   end
   
   def params_read(params)
+    @medals = [1, 2, 3]
     params.each do |elem|
-      if ["summer", "winter"].include? elem
-        @season = @@seasons_list[elem.to_sym]
-      elsif ["bronze", "silver", "gold"].include? elem
-        @medals = @@medals_list[elem.to_sym]
+      if %w[summer winter].include? elem
+        @season = SEASONS_LIST[elem.to_sym]
+      elsif %w[bronze silver gold].include? elem
+        @medals = [MEDALS_LIST[elem.to_sym]]
       else
         @noc_year = elem.upcase
       end
@@ -37,16 +35,18 @@ class DataBaseExecute
         puts "Please, enter noc"
       elsif @season.nil?
         puts "Please, enter valid season"
-      else  
+      else
+        query_params = db.prepare_elements([@medals, @season, @noc_year])
         data = db.execute "SELECT g.year, COUNT(r.id) FROM results r 
                       JOIN athletes a ON(r.athlete_id = a.id) 
                       JOIN teams t ON(a.team_id = t.id) 
                       JOIN games g ON(r.game_id = g.id) 
-                    WHERE t.noc_name = \'#{@noc_year}\'
-                      AND r.medal IN(#{@medals})
-                      AND g.season = #{@season} GROUP BY g.year;"
+                    WHERE r.medal IN #{db.values(1, @medals.size)}
+                      AND g.season = #{db.get_param(@medals.size + 1)} 
+                      AND t.noc_name = #{db.get_param(@medals.size + 2)} 
+                    GROUP BY g.year", query_params
 
-        print_data(db.get_data(data), true)
+        print_data(db.get_data(data))
       end
     end
 
@@ -54,14 +54,20 @@ class DataBaseExecute
       if @season.nil?
         puts "Please, enter valid season"
       else  
-        year = @noc_year.nil? ? "" : "year = #{@noc_year.to_i} AND"
+        params_arr = [@medals, @season]
+        year = @noc_year.nil? ? "" : " AND year = #{db.get_param(@medals.size + 2)}"
+        params_arr << @noc_year.to_i unless @noc_year.nil?
+
+        query_params = db.prepare_elements(params_arr)
 
         data = db.execute "SELECT t.noc_name, COUNT(r.id) FROM results r 
                       JOIN athletes a ON(r.athlete_id = a.id) 
                       JOIN teams t ON(a.team_id = t.id) 
                       JOIN games g ON(r.game_id = g.id) 
-                    WHERE #{year} r.medal IN(#{@medals})
-                      AND g.season = #{@season} GROUP BY t.noc_name;"
+                    WHERE r.medal IN #{db.values(1, @medals.size)}
+                      AND g.season = #{db.get_param(@medals.size + 1)}
+                      #{year} 
+                    GROUP BY t.noc_name", query_params
 
         print_data(db.get_data(data), true)
       end
